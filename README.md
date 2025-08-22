@@ -2,16 +2,16 @@
 
 Install the module via Composer:
 ```bash
-composer config repositories.paypal vcs https://github.com/ostap-mykhaylyak/paypal
+composer config repositories.monivra vcs https://github.com/ostap-mykhaylyak/monivra
 ```
 ```bash
-composer require ostap-mykhaylyak/paypal:dev-main
+composer require ostap-mykhaylyak/monivra:dev-main
 ```
 ```php
 <?php
 require __DIR__ . "/../vendor/autoload.php";
 
-use PayPalPHP\PayPal;
+use Ostap\Monivra\PayPal;
 
 $paypal = new PayPal("CLIENT_ID", "CLIENT_SECRET", true);
 
@@ -23,7 +23,7 @@ header("Location: " . $result["approval_url"]);
 <?php
 require __DIR__ . "/../vendor/autoload.php";
 
-use PayPalPHP\PayPal;
+use Ostap\Monivra\PayPal;
 
 $paypal = new PayPal("CLIENT_ID", "CLIENT_SECRET", true);
 
@@ -35,7 +35,7 @@ header("Location: " . $result["approval_url"]);
 <?php
 require __DIR__ . "/../vendor/autoload.php";
 
-use PayPalPHP\PayPal;
+use Ostap\Monivra\PayPal;
 
 $paypal = new PayPal("CLIENT_ID", "CLIENT_SECRET", true);
 
