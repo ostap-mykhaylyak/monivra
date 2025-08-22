@@ -27,6 +27,18 @@ use Ostap\Monivra\PayPal;
 
 $paypal = new PayPal("CLIENT_ID", "CLIENT_SECRET", true);
 
+$product = $paypal->createProduct("Hosting Mensile", "Abbonamento hosting web mensile");
+echo "Product ID: " . $product["id"];
+```
+
+```php
+<?php
+require __DIR__ . "/../vendor/autoload.php";
+
+use Ostap\Monivra\PayPal;
+
+$paypal = new PayPal("CLIENT_ID", "CLIENT_SECRET", true);
+
 $result = $paypal->amount(20)->order("SUB-001")->subscribe("M", "PROD-XXXX");
 header("Location: " . $result["approval_url"]);
 ```
@@ -65,4 +77,16 @@ switch ($event["event_type"]) {
 
 http_response_code(200);
 echo "OK";
+```
+
+```php
+<?php
+require __DIR__ . "/../vendor/autoload.php";
+
+use Ostap\Monivra\PayPal;
+
+$paypal = new PayPal("CLIENT_ID", "CLIENT_SECRET", true);
+
+$status = $paypal->getSubscription("I-SUBSCRIPTION-ID");
+print_r($status);
 ```
