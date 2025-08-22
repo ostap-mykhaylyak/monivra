@@ -1,5 +1,5 @@
 <?php
-namespace Ostap\PayPal;
+namespace Ostap\Monivra;
 
 use Exception;
 
