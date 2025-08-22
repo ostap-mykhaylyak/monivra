@@ -10,7 +10,10 @@ class PayPal
     private string $apiBase;
     private float $amount;
     private string $currency = "EUR";
+	private string $productId;
     private string $orderId;
+	private string $planId;
+	private string $intervalUnit = "MONTH"; // YEAR
     private ?string $accessToken = null;
 
     public function __construct(string $clientId, string $clientSecret, bool $sandbox = true)
@@ -30,6 +33,18 @@ class PayPal
     public function order(string $orderId): self
     {
         $this->orderId = $orderId;
+        return $this;
+    }
+	
+	public function plan(string $planId): self
+    {
+        $this->planId = $planId;
+        return $this;
+    }
+	
+	public function product(string $productId): self
+    {
+        $this->productId = $productId;
         return $this;
     }
 
@@ -53,7 +68,6 @@ class PayPal
         $this->accessToken = $response["access_token"];
     }
 
-    /** Creazione prodotto (necessario per abbonamenti) */
     public function createProduct(string $name, string $description = "", string $type = "SERVICE"): array
     {
         $this->authenticate();
@@ -66,8 +80,43 @@ class PayPal
 
         return $this->request("POST", "/v1/catalogs/products", $data);
     }
+	
+	public function createPlan(string $description = ""): array
+    {
+        $this->authenticate();
 
-    /** Pagamento singolo */
+        $data = [
+		  "product_id" => $this->productId,
+		  "name" => $description,
+		  "description" => $description,
+		  "status" => "ACTIVE",
+		  "billing_cycles" => [
+			[
+			  "frequency" => [
+				"interval_unit" => $this->intervalUnit,
+				"interval_count" => 1
+			  ],
+			  "tenure_type" => "REGULAR",
+			  "sequence" => 1,
+			  "total_cycles" => 0, // 0 = rinnovi infiniti
+			  "pricing_scheme" => [
+				"fixed_price" => [
+				  "value" => number_format($this->amount, 2, ".", ""),
+				  "currency_code" => $this->currency
+				]
+			  ]
+			]
+		  ],
+		  "payment_preferences" => [
+			"auto_bill_outstanding" => true,
+			"setup_fee_failure_action" => "CONTINUE",
+			"payment_failure_threshold" => 3
+		  ]
+		];
+
+		return $this->request("POST", "/v1/billing/plans", $data);
+    }
+
     public function pay(): array
     {
         $this->authenticate();
@@ -78,13 +127,16 @@ class PayPal
                 "reference_id" => $this->orderId,
                 "amount" => [
                     "currency_code" => $this->currency,
-                    "value" => number_format($this->amount, 2, ".", "")
+                    "value" => number_format($this->amount, 2, ".", ""),
                 ]
             ]],
             "application_context" => [
-                "return_url" => "https://tuo-sito.com/paypal/success",
-                "cancel_url" => "https://tuo-sito.com/paypal/cancel"
-            ]
+				"return_url" => base_url() . "paypal/success",
+				"cancel_url" => base_url() . "paypal/cancel",
+				"brand_name" => getenv('app.brand_name'),
+				"logo_image" => "https://tuo-sito.com/logo.png",
+				"shipping_preference" => "NO_SHIPPING",
+			]
         ];
 
         $response = $this->request("POST", "/v2/checkout/orders", $data);
@@ -100,48 +152,24 @@ class PayPal
         return ["response" => $response, "approval_url" => $approvalUrl];
     }
 
-    /** Conferma pagamento */
     public function captureOrder(string $paypalOrderId): array
     {
         $this->authenticate();
         return $this->request("POST", "/v2/checkout/orders/{$paypalOrderId}/capture");
     }
 
-    /** Creazione abbonamento */
-    public function subscribe(string $interval = "M", string $productId = "PRODOTTO123"): array
+    public function subscribe(): array
     {
         $this->authenticate();
 
-        $intervalUnit = $interval === "Y" ? "YEAR" : "MONTH";
-
         $data = [
-            "plan" => [
-                "product_id" => $productId,
-                "name" => "Abbonamento {$intervalUnit}",
-                "billing_cycles" => [[
-                    "frequency" => [
-                        "interval_unit" => $intervalUnit,
-                        "interval_count" => 1
-                    ],
-                    "tenure_type" => "REGULAR",
-                    "sequence" => 1,
-                    "total_cycles" => 0,
-                    "pricing_scheme" => [
-                        "fixed_price" => [
-                            "value" => number_format($this->amount, 2, ".", ""),
-                            "currency_code" => $this->currency
-                        ]
-                    ]
-                ]],
-                "payment_preferences" => [
-                    "auto_bill_outstanding" => true,
-                    "setup_fee_failure_action" => "CONTINUE",
-                    "payment_failure_threshold" => 1
-                ]
-            ],
+            "plan_id" => $this->planId,
             "application_context" => [
-                "return_url" => "https://tuo-sito.com/paypal/success",
-                "cancel_url" => "https://tuo-sito.com/paypal/cancel"
+                "return_url" => base_url() . "paypal/success",
+				"cancel_url" => base_url() . "paypal/cancel",
+				"brand_name" => getenv('app.brand_name'),
+				"logo_image" => base_url() . "/logo.png",
+				"shipping_preference" => "NO_SHIPPING",
             ]
         ];
 
@@ -153,14 +181,12 @@ class PayPal
         ];
     }
 
-    /** Stato abbonamento */
     public function getSubscription(string $subscriptionId): array
     {
         $this->authenticate();
         return $this->request("GET", "/v1/billing/subscriptions/{$subscriptionId}");
     }
 
-    /** Verifica firma webhook */
     public function verifyWebhook(array $headers, string $body, string $webhookId): bool
     {
         $this->authenticate();
@@ -180,7 +206,6 @@ class PayPal
         return isset($response["verification_status"]) && $response["verification_status"] === "SUCCESS";
     }
 
-    /** Metodo generico richieste */
     private function request(string $method, string $endpoint, array $data = []): array
     {
         $ch = curl_init("{$this->apiBase}{$endpoint}");
