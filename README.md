@@ -9,84 +9,19 @@ composer require ostap-mykhaylyak/monivra:dev-main
 ```
 ```php
 <?php
-require __DIR__ . "/../vendor/autoload.php";
-
 use Ostap\Monivra\PayPal;
 
-$paypal = new PayPal("CLIENT_ID", "CLIENT_SECRET", true);
+$paypal = new PayPal("xxxx", "ssss", true);
 
 $result = $paypal->amount(10)->order("2025-001")->pay();
-header("Location: " . $result["approval_url"]);
-```
-
-```php
-<?php
-require __DIR__ . "/../vendor/autoload.php";
-
-use Ostap\Monivra\PayPal;
-
-$paypal = new PayPal("CLIENT_ID", "CLIENT_SECRET", true);
+//header("Location: " . $result["approval_url"]);
 
 $product = $paypal->createProduct("Hosting Mensile", "Abbonamento hosting web mensile");
-echo "Product ID: " . $product["id"];
-```
-
-```php
-<?php
-require __DIR__ . "/../vendor/autoload.php";
-
-use Ostap\Monivra\PayPal;
-
-$paypal = new PayPal("CLIENT_ID", "CLIENT_SECRET", true);
-
-$result = $paypal->amount(20)->order("SUB-001")->subscribe("M", "PROD-XXXX");
-header("Location: " . $result["approval_url"]);
-```
-
-```php
-<?php
-require __DIR__ . "/../vendor/autoload.php";
-
-use Ostap\Monivra\PayPal;
-
-$paypal = new PayPal("CLIENT_ID", "CLIENT_SECRET", true);
-
-$body = file_get_contents("php://input");
-$headers = array_change_key_case(getallheaders(), CASE_LOWER);
-
-$webhookId = "IL_TUO_WEBHOOK_ID";
-
-if (!$paypal->verifyWebhook($headers, $body, $webhookId)) {
-    http_response_code(400);
-    exit("Invalid webhook signature");
-}
-
-$event = json_decode($body, true);
-
-switch ($event["event_type"]) {
-    case "PAYMENT.CAPTURE.COMPLETED":
-        // aggiorna DB pagamento singolo
-        break;
-    case "PAYMENT.SALE.COMPLETED":
-        // rinnovo abbonamento
-        break;
-    case "BILLING.SUBSCRIPTION.CANCELLED":
-        // abbonamento annullato
-        break;
-}
-
-http_response_code(200);
-echo "OK";
-```
-
-```php
-<?php
-require __DIR__ . "/../vendor/autoload.php";
-
-use Ostap\Monivra\PayPal;
-
-$paypal = new PayPal("CLIENT_ID", "CLIENT_SECRET", true);
-
-$status = $paypal->getSubscription("I-SUBSCRIPTION-ID");
-print_r($status);
+echo "Product ID: " . $product["id"] . PHP_EOL;
+		
+$plan = $paypal->product($product["id"])->amount(10.00)->createPlan("Abbonamento hosting web mensile");
+echo "Plan ID: " . $plan["id"]. PHP_EOL;
+		
+$result = $paypal->plan($plan["id"])->subscribe();
+//header("Location: " . $result["approval_url"]);
 ```
