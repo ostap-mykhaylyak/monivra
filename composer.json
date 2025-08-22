@@ -1,0 +1,13 @@
+{
+  "name": "ostap-mykhaylyak/paypal",
+  "description": "Libreria PHP per integrare pagamenti PayPal (ordini e abbonamenti) con supporto webhook",
+  "type": "library",
+  "autoload": {
+    "psr-4": {
+      "Ostap\\PayPal\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=8.0"
+  }
+}
